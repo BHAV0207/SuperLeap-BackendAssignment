@@ -1,4 +1,4 @@
-package service
+package services
 
 import "github.com/BHAV0207/SuperLeap-BackendAssignment/internal/models"
 
