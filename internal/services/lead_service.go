@@ -1,7 +1,7 @@
 package services
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/dto"
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/models"
@@ -20,6 +20,7 @@ func NewLeadService(repo *repositories.LeadRepository) *LeadService {
 }
 
 func (s *LeadService) CreateLead(req *dto.CreateLeadRequest) (*models.Lead, error) {
+
 	lead := models.Lead{
 		Name:   req.Name,
 		Email:  req.Email,
@@ -74,10 +75,7 @@ func (s *LeadService) UpdateLead(id uuid.UUID, req dto.UpdateLeadRequest) (*mode
 	return lead, nil
 }
 
-func (s *LeadService) UpdateLeadStatus(
-	id uuid.UUID,
-	newStatus models.LeadStatus,
-) (*models.Lead, error) {
+func (s *LeadService) UpdateLeadStatus(id uuid.UUID, newStatus models.LeadStatus) (*models.Lead, error) {
 
 	lead, err := s.repo.GetByID(id)
 	if err != nil {
@@ -85,8 +83,12 @@ func (s *LeadService) UpdateLeadStatus(
 	}
 
 	if !isValidTransition(lead.Status, newStatus) {
-		return nil, errors.New(
-			"invalid status transition",
+
+		return nil, fmt.Errorf(
+			"%w: %s -> %s",
+			ErrInvalidStatusTransition,
+			lead.Status,
+			newStatus,
 		)
 	}
 

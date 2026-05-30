@@ -38,24 +38,13 @@ func (h *LeadHandler) CreateLead(c *gin.Context) {
 		return
 	}
 
-	response := dto.LeadResponse{
-		ID:        lead.ID,
-		Name:      lead.Name,
-		Email:     lead.Email,
-		Phone:     lead.Phone,
-		Source:    lead.Source,
-		Status:    lead.Status,
-		CreatedAt: lead.CreatedAt,
-		UpdatedAt: lead.UpdatedAt,
-	}
+	response := utils.ToLeadResponse(lead)
 
 	utils.Success(c, http.StatusCreated, response)
 }
 
 func (h *LeadHandler) GetLeadByID(c *gin.Context) {
-	idParam := c.Param("id")
-
-	id, err := uuid.Parse(idParam)
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 
 		utils.ValidationError(c, "invalid UUID format")
@@ -63,24 +52,22 @@ func (h *LeadHandler) GetLeadByID(c *gin.Context) {
 	}
 
 	lead, err := h.service.GetLeadByID(id)
+
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusNotFound, dto.ErrorResponse{
-			Success: false,
-			Error:   "lead not found",
-		})
+
+		utils.Error(c, http.StatusNotFound, "lead not found")
+
 		return
 	}
 
-	response := dto.LeadResponse{
-		ID:        lead.ID,
-		Name:      lead.Name,
-		Email:     lead.Email,
-		Phone:     lead.Phone,
-		Source:    lead.Source,
-		Status:    lead.Status,
-		CreatedAt: lead.CreatedAt,
-		UpdatedAt: lead.UpdatedAt,
+	if err != nil {
+
+		utils.Error(c, http.StatusInternalServerError, err.Error())
+
+		return
 	}
+
+	response := utils.ToLeadResponse(lead)
 
 	utils.Success(c, http.StatusOK, response)
 }
@@ -106,16 +93,10 @@ func (h *LeadHandler) GetAllLeads(c *gin.Context) {
 	var response []dto.LeadResponse
 
 	for _, lead := range leads {
-		response = append(response, dto.LeadResponse{
-			ID:        lead.ID,
-			Name:      lead.Name,
-			Email:     lead.Email,
-			Phone:     lead.Phone,
-			Source:    lead.Source,
-			Status:    lead.Status,
-			CreatedAt: lead.CreatedAt,
-			UpdatedAt: lead.UpdatedAt,
-		})
+		response = append(
+			response,
+			utils.ToLeadResponse(&lead),
+		)
 	}
 
 	utils.Success(c, http.StatusOK, response)
@@ -134,44 +115,31 @@ func (h *LeadHandler) UpdateLead(c *gin.Context) {
 	var req dto.UpdateLeadRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-	
+
 		utils.ValidationError(c, err.Error())
 		return
 	}
 
 	lead, err := h.service.UpdateLead(id, req)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusNotFound, dto.ErrorResponse{
-			Success: false,
-			Error:   "lead not found",
-		})
+		utils.Error(c, http.StatusNotFound, "lead not found")
 		return
 	} else if err != nil {
 		utils.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	response := dto.LeadResponse{
-		ID:        lead.ID,
-		Name:      lead.Name,
-		Email:     lead.Email,
-		Phone:     lead.Phone,
-		Source:    lead.Source,
-		Status:    lead.Status,
-		CreatedAt: lead.CreatedAt,
-		UpdatedAt: lead.UpdatedAt,
-	}
+	response := utils.ToLeadResponse(lead)
 
 	utils.Success(c, http.StatusOK, response)
 
 }
 
 func (h *LeadHandler) UpdateLeadStatus(c *gin.Context) {
-	idParam := c.Param("id")
 
-	id, err := uuid.Parse(idParam)
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-	
+
 		utils.ValidationError(c, "invalid UUID format")
 		return
 	}
@@ -185,49 +153,53 @@ func (h *LeadHandler) UpdateLeadStatus(c *gin.Context) {
 	}
 
 	lead, err := h.service.UpdateLeadStatus(id, req.Status)
+
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusNotFound, dto.ErrorResponse{
-			Success: false,
-			Error:   "lead not found",
-		})
-		return
-	} else if err != nil {
-		utils.Error(c, http.StatusInternalServerError, err.Error())
+
+		utils.Error(c, http.StatusNotFound, "lead not found")
 		return
 	}
 
-	response := dto.LeadResponse{
-		ID:        lead.ID,
-		Name:      lead.Name,
-		Email:     lead.Email,
-		Phone:     lead.Phone,
-		Source:    lead.Source,
-		Status:    lead.Status,
-		CreatedAt: lead.CreatedAt,
-		UpdatedAt: lead.UpdatedAt,
+	if errors.Is(err, services.ErrInvalidStatusTransition) {
+
+		utils.Error(c, http.StatusBadRequest, err.Error())
+		return
 	}
+
+	if err != nil {
+
+		utils.Error(c, http.StatusInternalServerError, err.Error())
+
+		return
+	}
+
+	response := utils.ToLeadResponse(lead)
+
 	utils.Success(c, http.StatusOK, response)
 }
 
 func (h *LeadHandler) DeleteLead(c *gin.Context) {
-	idParam := c.Param("id")
 
-	id, err := uuid.Parse(idParam)
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
+
 		utils.ValidationError(c, "invalid UUID format")
 		return
 	}
 
 	err = h.service.DeleteLead(id)
+
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusNotFound, dto.ErrorResponse{
-			Success: false,
-			Error:   "lead not found",
-		})
+
+		utils.Error(c, http.StatusNotFound, "lead not found")
 		return
-	} else if err != nil {
+	}
+
+	if err != nil {
+
 		utils.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+
 	utils.Success(c, http.StatusOK, "lead deleted successfully")
 }
