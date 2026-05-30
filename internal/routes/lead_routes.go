@@ -19,5 +19,8 @@ func RegisterLeadRoutes(
 		leads.PUT("/:id", handler.UpdateLead)
 		leads.DELETE("/:id", handler.DeleteLead)
 		leads.PATCH("/:id/status", handler.UpdateLeadStatus)
+		// Bulk operations
+		leads.POST("/bulk", handler.BulkCreateLeads)
+		leads.PUT("/bulk", handler.BulkUpdateLeads)
 	}
 }

@@ -105,3 +105,121 @@ func (s *LeadService) UpdateLeadStatus(id uuid.UUID, newStatus models.LeadStatus
 func (s *LeadService) DeleteLead(id uuid.UUID) error {
 	return s.repo.Delete(id)
 }
+
+// bulk requests
+func (s *LeadService) BulkCreateLeads(req dto.BulkCreateLeadRequest) dto.BulkResponse {
+
+	response := dto.BulkResponse{Total: len(req.Leads)}
+
+	for index, leadReq := range req.Leads {
+
+		lead, err := s.CreateLead(&leadReq)
+
+		if err != nil {
+
+			response.Failed++
+
+			response.Results = append(
+				response.Results,
+				dto.BulkResult{
+					Index:   index,
+					Success: false,
+					Error:   err.Error(),
+				},
+			)
+
+			continue
+		}
+
+		leadResponse := dto.LeadResponse{
+			ID:        lead.ID,
+			Name:      lead.Name,
+			Email:     lead.Email,
+			Phone:     lead.Phone,
+			Source:    lead.Source,
+			Status:    lead.Status,
+			CreatedAt: lead.CreatedAt,
+			UpdatedAt: lead.UpdatedAt,
+		}
+
+		response.Successful++
+
+		response.Results = append(
+			response.Results,
+			dto.BulkResult{
+				Index:   index,
+				Success: true,
+				Lead:    &leadResponse,
+			},
+		)
+	}
+
+	return response
+}
+
+func (s *LeadService) BulkUpdateLeads(req dto.BulkUpdateLeadRequest) dto.BulkResponse {
+
+	response := dto.BulkResponse{Total: len(req.Leads)}
+
+	for index, leadReq := range req.Leads {
+
+		id, err := uuid.Parse(leadReq.ID)
+		if err != nil {
+
+			response.Failed++
+
+			response.Results = append(
+				response.Results,
+				dto.BulkResult{
+					Index:   index,
+					Success: false,
+					Error:   "invalid UUID",
+				},
+			)
+
+			continue
+		}
+
+		lead, err := s.UpdateLead(id, leadReq.UpdateLeadRequest)
+
+		if err != nil {
+
+			response.Failed++
+
+			response.Results = append(
+				response.Results,
+				dto.BulkResult{
+					Index:   index,
+					Success: false,
+					Error:   err.Error(),
+				},
+			)
+
+			continue
+		}
+
+		leadResponse := dto.LeadResponse{
+			ID:        lead.ID,
+			Name:      lead.Name,
+			Email:     lead.Email,
+			Phone:     lead.Phone,
+			Source:    lead.Source,
+			Status:    lead.Status,
+			CreatedAt: lead.CreatedAt,
+			UpdatedAt: lead.UpdatedAt,
+		}
+
+		response.Successful++
+
+		response.Results = append(
+			response.Results,
+			dto.BulkResult{
+				Index:   index,
+				Success: true,
+				Lead:    &leadResponse,
+			},
+		)
+	}
+
+	return response
+}

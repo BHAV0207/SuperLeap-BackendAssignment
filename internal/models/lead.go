@@ -30,7 +30,11 @@ type Lead struct {
 }
 
 func (l *Lead) BeforeCreate(tx *gorm.DB) error {
-	l.ID = uuid.New()
-	l.Status = StatusNew
+	if l.ID == uuid.Nil {
+		l.ID = uuid.New()
+	}
+	if l.Status == "" {
+		l.Status = StatusNew
+	}
 	return nil
 }

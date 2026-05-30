@@ -203,3 +203,32 @@ func (h *LeadHandler) DeleteLead(c *gin.Context) {
 
 	utils.Success(c, http.StatusOK, "lead deleted successfully")
 }
+
+// bulk operations
+func (h *LeadHandler) BulkCreateLeads(c *gin.Context) {
+
+	var req dto.BulkCreateLeadRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationError(c, err.Error())
+		return
+	}
+
+	response := h.service.BulkCreateLeads(req)
+	utils.Success(c, http.StatusCreated, response)
+}
+
+func (h *LeadHandler) BulkUpdateLeads(c *gin.Context) {
+
+	var req dto.BulkUpdateLeadRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+
+		utils.ValidationError(c, err.Error())
+		return
+	}
+
+	response := h.service.BulkUpdateLeads(req)
+
+	utils.Success(c, http.StatusOK, response)
+}
