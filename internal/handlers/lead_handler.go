@@ -182,7 +182,6 @@ func (h *LeadHandler) DeleteLead(c *gin.Context) {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-
 		utils.ValidationError(c, "invalid UUID format")
 		return
 	}
@@ -190,7 +189,6 @@ func (h *LeadHandler) DeleteLead(c *gin.Context) {
 	err = h.service.DeleteLead(id)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-
 		utils.Error(c, http.StatusNotFound, "lead not found")
 		return
 	}
@@ -207,10 +205,20 @@ func (h *LeadHandler) DeleteLead(c *gin.Context) {
 // bulk operations
 func (h *LeadHandler) BulkCreateLeads(c *gin.Context) {
 
+	if c.Request.Body == nil {
+		utils.ValidationError(c, "request body cannot be empty")
+		return
+	}
+
 	var req dto.BulkCreateLeadRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ValidationError(c, err.Error())
+		return
+	}
+
+	if len(req.Leads) == 0 {
+		utils.ValidationError(c, "leads array cannot be empty")
 		return
 	}
 
@@ -225,6 +233,11 @@ func (h *LeadHandler) BulkUpdateLeads(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 
 		utils.ValidationError(c, err.Error())
+		return
+	}
+
+	if len(req.Leads) == 0 {
+		utils.ValidationError(c, "leads array cannot be empty")
 		return
 	}
 

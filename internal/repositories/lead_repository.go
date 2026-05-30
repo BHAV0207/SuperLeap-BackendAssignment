@@ -48,5 +48,15 @@ func (r *LeadRepository) Update(lead *models.Lead) error {
 }
 
 func (r *LeadRepository) Delete(id uuid.UUID) error {
-	return r.db.Delete(&models.Lead{}, "id = ?", id).Error
+	result := r.db.Delete(&models.Lead{}, "id = ?", id)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
 }

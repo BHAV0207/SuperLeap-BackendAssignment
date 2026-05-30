@@ -13,6 +13,9 @@ import (
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/repositories"
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/routes"
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/services"
+	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/validators"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 )
 
 func main() {
@@ -54,6 +57,11 @@ func main() {
 	leadHandler := handlers.NewLeadHandler(
 		leadService,
 	)
+
+	// Register custom validators
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterValidation("phone", validators.ValidatePhone)
+	}
 
 	// Create router
 	router := gin.Default()

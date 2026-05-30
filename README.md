@@ -1,32 +1,655 @@
-# SuperLeap Backend Assignment
+# Mini Lead CRM — Superleap Backend Intern Assessment
 
-This repository contains the backend implementation for the SuperLeap assignment.
+A clean, production-inspired RESTful Lead Management CRM built using Go, Gin, PostgreSQL, GORM, Docker, and Redis.
+
+This project implements:
+
+* Level 1 — Core CRUD + Workflow State Machine
+* Level 2 — Bulk Operations with Partial Success Handling
+* Level 3 — Redis Caching with Graceful Fallback
+
+The focus of this project was:
+
+* clean architecture
+* correctness
+* maintainability
+* proper backend engineering practices
+* graceful error handling
+* realistic API design
+
+---
+
+# Tech Stack
+
+## Language — Go
+
+Go was chosen because of:
+
+* simplicity
+* strong concurrency support
+* excellent performance
+* clean standard library
+* suitability for backend APIs and microservices
+
+It also encourages clean architecture and explicit error handling.
+
+---
+
+## Framework — Gin
+
+Gin was chosen because it is:
+
+* lightweight
+* fast
+* minimal
+* production-ready
+
+It provides:
+
+* routing
+* middleware support
+* request validation
+* JSON serialization
+
+without unnecessary complexity.
+
+---
+
+## Database — PostgreSQL
+
+PostgreSQL was chosen because:
+
+* it is reliable and production-proven
+* supports strong relational consistency
+* works well with structured business workflows
+* integrates cleanly with GORM
+
+The Lead entity and workflow transitions fit naturally into a relational model.
+
+---
+
+## ORM — GORM
+
+GORM was used for:
+
+* clean database interaction
+* automatic timestamps
+* soft deletes
+* migrations
+* model mapping
+
+while still allowing readable SQL-like behavior.
+
+---
+
+## Cache — Redis
+
+Redis was added for:
+
+* caching read-heavy endpoints
+* reducing repeated database lookups
+* demonstrating cache invalidation strategies
+
+The application gracefully falls back to database access if Redis is unavailable.
+
+---
+
+# Features
+
+## Level 1 — Core CRM
+
+Implemented:
+
+* Create Lead
+* Get All Leads
+* Get Lead By ID
+* Update Lead
+* Delete Lead (Soft Delete)
+* Status Transition API
+
+Additional features:
+
+* input validation
+* email validation
+* phone validation
+* UUID validation
+* centralized response helpers
+* centralized error handling
+* DTO-based request/response structure
+* workflow transition validation
+
+---
+
+## Level 2 — Bulk Operations
+
+Implemented:
+
+* Bulk Create Leads
+* Bulk Update Leads
+
+Features:
+
+* partial success handling
+* per-record error reporting
+* independent record processing
+* validation reuse from single operations
+
+One invalid record does not fail the entire batch.
+
+---
+
+## Level 3 — Redis Caching
+
+Implemented:
+
+* cache GET `/leads/:id`
+* invalidate cache on update
+* invalidate cache on delete
+
+Features:
+
+* graceful fallback if Redis unavailable
+* automatic cache repopulation
+* optional caching layer
+
+---
+
+# Project Structure
+
+```txt
+.
+├── cmd
+│   └── server
+│       └── main.go
+│
+├── internal
+│   ├── config
+│   ├── database
+│   ├── dto
+│   ├── handlers
+│   ├── models
+│   ├── repositories
+│   ├── routes
+│   ├── services
+│   ├── utils
+│   └── validators
+│
+├── docker-compose.yml
+├── go.mod
+├── go.sum
+└── README.md
+```
+
+---
+
+# Architecture
+
+The application follows a layered architecture:
+
+```txt
+Handler Layer
+↓
+Service Layer
+↓
+Repository Layer
+↓
+Database
+```
+
+---
+
+## Handler Layer
+
+Responsible for:
+
+* request parsing
+* validation handling
+* HTTP status codes
+* response formatting
+
+Handlers do NOT contain business logic.
+
+---
+
+## Service Layer
+
+Responsible for:
+
+* business logic
+* workflow rules
+* status transition validation
+* cache orchestration
+
+This layer acts as the core business layer of the application.
+
+---
+
+## Repository Layer
+
+Responsible for:
+
+* database operations
+* persistence logic
+* querying
+
+Repositories are intentionally kept database-focused.
+
+---
+
+## DTO Layer
+
+DTOs were used to:
+
+* separate API contracts from database models
+* support request validation
+* prevent leaking internal model structure
+
+Separate DTOs were created for:
+
+* create requests
+* update requests
+* status updates
+* responses
+* bulk operations
+
+---
+
+# Lead Workflow Rules
+
+The following workflow rules are enforced:
+
+```txt
+NEW → CONTACTED → QUALIFIED → CONVERTED
+ ↘ LOST
+```
+
+Rules:
+
+* A lead starts as `NEW`
+* A lead can move forward one step at a time
+* A lead can move to `LOST` from any status except `CONVERTED`
+* `CONVERTED` and `LOST` are terminal states
+* Invalid transitions return HTTP 400
+
+---
+
+# Validation Strategy
+
+Validation is handled at multiple layers.
+
+---
+
+## DTO Validation
+
+Handled using Gin + go-playground/validator.
+
+Includes:
+
+* required fields
+* valid email format
+* enum validation
+* phone validation
+
+Example:
+
+* invalid email rejected before reaching service layer
+* invalid status values rejected before business logic execution
+
+---
+
+## Service Validation
+
+Business workflow validation is handled inside the service layer.
+
+Example:
+
+* `NEW → CONVERTED` is rejected
+* `LOST → CONTACTED` is rejected
+
+This separates:
+
+* input validation
+  from:
+* business rule validation
+
+---
+
+# Caching Strategy
+
+Redis caching was implemented only for:
+
+```txt
+GET /leads/:id
+```
+
+This was intentionally scoped narrowly to:
+
+* keep cache invalidation simple
+* avoid stale list/query caches
+* reduce unnecessary complexity
+
+---
+
+## Cache Flow
+
+```txt
+Request
+↓
+Check Redis
+↓
+Cache Hit?
+  YES → Return Cached Data
+  NO  → Query Database
+          ↓
+       Store in Redis
+          ↓
+       Return Response
+```
+
+---
+
+## Cache Invalidation
+
+Cache is invalidated when:
+
+* lead updated
+* lead status changed
+* lead deleted
+
+Invalidation strategy:
+
+* delete cache entry
+* repopulate on next read
+
+This approach was chosen because it is:
+
+* simple
+* safe
+* consistent
+
+---
+
+## Graceful Fallback
+
+If Redis is unavailable:
+
+* the application still works normally
+* requests fall back to PostgreSQL
+* caching becomes optional
+
+This avoids application failure due to cache outages.
+
+---
+
+# Error Handling
+
+The project uses:
+
+* centralized response helpers
+* centralized custom errors
+* proper HTTP status codes
+* graceful validation handling
+
+Examples:
+
+* `400` → invalid request
+* `404` → resource not found
+* `500` → unexpected server errors
+
+Custom domain errors are implemented for:
+
+* invalid status transitions
+
+---
+
+# Seed Data
+
+The application automatically seeds sample leads during startup.
+
+The seeding process is:
+
+* idempotent
+* duplicate-safe
+
+Sample leads include all workflow states:
+
+* NEW
+* CONTACTED
+* QUALIFIED
+* CONVERTED
+* LOST
+
+---
+
+# Setup Instructions
 
 ## Prerequisites
 
-- Go 1.25+
-- Docker and Docker Compose
+Install:
 
-## Getting Started
+* Go
+* Docker
+* Docker Compose
 
-1.  **Clone the repository**
-2.  **Set up environment variables:**
-    Copy `.env.example` to `.env` and adjust the values if necessary.
-3.  **Start the database:**
-    ```bash
-    docker-compose up -d
-    ```
-4.  **Run the application:**
-    ```bash
-    go run cmd/server/main.go
-    ```
+---
 
-## Seed Data
+# Environment Variables
 
-To populate the database with sample lead data for testing, run the following command:
+Create a `.env` file:
 
-```bash
-docker exec -i superleap-postgres psql -U postgres -d superleap < internal/database/seed.sql
+```env
+PORT=8080
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=superleap
+DB_SSLMODE=disable
+
+REDIS_HOST=localhost
+REDIS_PORT=6379
 ```
 
-This will insert several leads with various statuses into the `leads` table.
+---
+
+# Start PostgreSQL + Redis
+
+```bash
+docker compose up -d
+```
+
+---
+
+# Run Application
+
+```bash
+go run cmd/server/main.go
+```
+
+Server runs on:
+
+```txt
+http://localhost:8080
+```
+
+---
+
+# API Endpoints
+
+## Core CRUD
+
+| Method | Endpoint            | Description        |
+| ------ | ------------------- | ------------------ |
+| POST   | `/leads`            | Create lead        |
+| GET    | `/leads`            | Get all leads      |
+| GET    | `/leads/:id`        | Get lead by ID     |
+| PUT    | `/leads/:id`        | Update lead        |
+| DELETE | `/leads/:id`        | Delete lead        |
+| PATCH  | `/leads/:id/status` | Update lead status |
+
+---
+
+## Bulk Operations
+
+| Method | Endpoint      | Description       |
+| ------ | ------------- | ----------------- |
+| POST   | `/leads/bulk` | Bulk create leads |
+| PUT    | `/leads/bulk` | Bulk update leads |
+
+---
+
+# Example Requests
+
+## Create Lead
+
+```bash
+curl -X POST http://localhost:8080/leads \
+-H "Content-Type: application/json" \
+-d '{
+  "name": "Aman Gupta",
+  "email": "aman@example.com",
+  "phone": "+91-9876543210",
+  "source": "website"
+}'
+```
+
+---
+
+## Update Status
+
+```bash
+curl -X PATCH http://localhost:8080/leads/<id>/status \
+-H "Content-Type: application/json" \
+-d '{
+  "status": "CONTACTED"
+}'
+```
+
+---
+
+## Bulk Create
+
+```bash
+curl -X POST http://localhost:8080/leads/bulk \
+-H "Content-Type: application/json" \
+-d '{
+  "leads": [
+    {
+      "name": "Lead One",
+      "email": "lead1@example.com"
+    },
+    {
+      "name": "Lead Two",
+      "email": "lead2@example.com"
+    }
+  ]
+}'
+```
+
+---
+
+# Design Decisions
+
+## Why Layered Architecture?
+
+Layered architecture was chosen to:
+
+* separate responsibilities
+* improve maintainability
+* reduce coupling
+* simplify testing
+
+Each layer has a clear responsibility.
+
+---
+
+## Why DTOs?
+
+DTOs were used to:
+
+* avoid exposing database models directly
+* support request validation
+* support partial updates cleanly
+* keep API contracts explicit
+
+---
+
+## Why Soft Deletes?
+
+Soft deletes were chosen because:
+
+* deleted leads may still be useful historically
+* avoids permanent accidental data loss
+* supported naturally by GORM
+
+---
+
+## Why Redis Optional?
+
+Redis was intentionally designed as optional because:
+
+* cache outages should not break APIs
+* database remains source of truth
+* graceful degradation is important in distributed systems
+
+---
+
+## Why Cache Only `GET /leads/:id`?
+
+Caching list endpoints introduces:
+
+* invalidation complexity
+* filtering consistency problems
+* pagination cache issues
+
+Caching single-record reads provides:
+
+* meaningful performance improvement
+* simple invalidation
+* safer consistency guarantees
+
+---
+
+## How Concurrent Status Transitions Would Be Handled At Scale
+
+At larger scale, concurrent transitions could cause race conditions.
+
+Possible production solutions:
+
+* optimistic locking
+* row-level database locking
+* version-based updates
+* transactional workflow enforcement
+
+For assignment scope, sequential updates are sufficient.
+
+---
+
+# Future Improvements
+
+Possible future enhancements:
+
+* pagination
+* search by name/email
+* sorting
+* Swagger/OpenAPI documentation
+* authentication/authorization
+* unit/integration testing
+* metrics/monitoring
+* async event processing
+* Dockerized application container
+* CI/CD pipeline
+
+---
+
+# Notes
+
+This project was intentionally designed to prioritize:
+
+* correctness
+* clean architecture
+* maintainability
+* simplicity over overengineering
+
+The goal was to build a realistic backend system while keeping the implementation understandable and production-inspired.

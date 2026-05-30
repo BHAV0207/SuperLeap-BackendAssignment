@@ -1,1 +1,6 @@
 .env
+
+go.mod
+go.sum
+
+server
