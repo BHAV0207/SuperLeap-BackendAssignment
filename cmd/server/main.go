@@ -29,6 +29,9 @@ func main() {
 		log.Fatal(err)
 	}
 
+	//redis connection
+	redisClient := database.ConnectRedis(cfg)
+
 	// Run migrations
 	err = db.AutoMigrate(&models.Lead{})
 	if err != nil {
@@ -45,6 +48,7 @@ func main() {
 
 	leadService := services.NewLeadService(
 		leadRepository,
+		redisClient,
 	)
 
 	leadHandler := handlers.NewLeadHandler(

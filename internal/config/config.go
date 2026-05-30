@@ -10,6 +10,7 @@ import (
 type AppConfig struct {
 	Port     PortConfig
 	Database DatabaseConfig
+	Redis    RedisConfig
 }
 
 type PortConfig struct {
@@ -22,6 +23,11 @@ type DatabaseConfig struct {
 	User     string
 	Password string
 	Name     string
+}
+
+type RedisConfig struct {
+	Host string
+	Port string
 }
 
 func NewAppConfig() (*AppConfig, error) {
@@ -39,10 +45,15 @@ func NewAppConfig() (*AppConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error loading database configuration: %w", err)
 	}
+	redisConfig , err := newRedisConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error loading Redis configuration: %w", err)
+	}
 
 	return &AppConfig{
 		Port:     *portConfig,
 		Database: *dbConfig,
+		Redis:    *redisConfig,
 	}, nil
 }
 
@@ -70,6 +81,20 @@ func newDatabaseConfig() (*DatabaseConfig, error) {
 	}
 
 	return dbConfig, nil
+}
+
+func newRedisConfig() (*RedisConfig, error) {
+
+	redisConfig := &RedisConfig{
+		Host: os.Getenv("REDIS_HOST"),
+		Port: os.Getenv("REDIS_PORT"),
+	}
+
+	if redisConfig.Host == "" || redisConfig.Port == "" {
+		return nil, fmt.Errorf("all Redis configuration fields are required")
+	}
+
+	return redisConfig, nil
 }
 
 //generally the helper functions job is to pass the error to the caller and then the caller decides how to handel THE ERROR .

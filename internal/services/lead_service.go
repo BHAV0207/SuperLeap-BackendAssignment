@@ -7,15 +7,18 @@ import (
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/models"
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/repositories"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 type LeadService struct {
-	repo *repositories.LeadRepository
+	repo  *repositories.LeadRepository
+	redis *redis.Client
 }
 
-func NewLeadService(repo *repositories.LeadRepository) *LeadService {
+func NewLeadService(repo *repositories.LeadRepository, redisClient *redis.Client) *LeadService {
 	return &LeadService{
-		repo: repo,
+		repo:  repo,
+		redis: redisClient,
 	}
 }
 
@@ -37,7 +40,21 @@ func (s *LeadService) CreateLead(req *dto.CreateLeadRequest) (*models.Lead, erro
 }
 
 func (s *LeadService) GetLeadByID(id uuid.UUID) (*models.Lead, error) {
-	return s.repo.GetByID(id)
+
+	cachedLead, err := s.getCachedLead(id.String())
+
+	if err == nil && cachedLead != nil {
+		return cachedLead, nil
+	}
+
+	lead, err := s.repo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	s.setCachedLead(lead)
+
+	return lead, nil
 }
 
 func (s *LeadService) GetAllLeads(status *models.LeadStatus) ([]models.Lead, error) {
@@ -72,6 +89,8 @@ func (s *LeadService) UpdateLead(id uuid.UUID, req dto.UpdateLeadRequest) (*mode
 		return nil, err
 	}
 
+	s.deleteCachedLead(id.String())
+
 	return lead, nil
 }
 
@@ -99,10 +118,13 @@ func (s *LeadService) UpdateLeadStatus(id uuid.UUID, newStatus models.LeadStatus
 		return nil, err
 	}
 
+	s.deleteCachedLead(id.String())
+
 	return lead, nil
 }
 
 func (s *LeadService) DeleteLead(id uuid.UUID) error {
+	s.deleteCachedLead(id.String())
 	return s.repo.Delete(id)
 }
 
