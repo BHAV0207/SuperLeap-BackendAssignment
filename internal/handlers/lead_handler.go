@@ -7,6 +7,7 @@ import (
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/dto"
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/models"
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/services"
+	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -26,19 +27,14 @@ func (h *LeadHandler) CreateLead(c *gin.Context) {
 	var req dto.CreateLeadRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+
+		utils.ValidationError(c, err.Error())
 		return
 	}
 
 	lead, err := h.service.CreateLead(&req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+		utils.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -53,10 +49,7 @@ func (h *LeadHandler) CreateLead(c *gin.Context) {
 		UpdatedAt: lead.UpdatedAt,
 	}
 
-	c.JSON(http.StatusCreated, dto.SuccessResponse{
-		Success: true,
-		Data:    response,
-	})
+	utils.Success(c, http.StatusCreated, response)
 }
 
 func (h *LeadHandler) GetLeadByID(c *gin.Context) {
@@ -64,10 +57,8 @@ func (h *LeadHandler) GetLeadByID(c *gin.Context) {
 
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Success: false,
-			Error:   "invalid UUID format",
-		})
+
+		utils.ValidationError(c, "invalid UUID format")
 		return
 	}
 
@@ -91,10 +82,7 @@ func (h *LeadHandler) GetLeadByID(c *gin.Context) {
 		UpdatedAt: lead.UpdatedAt,
 	}
 
-	c.JSON(http.StatusOK, dto.SuccessResponse{
-		Success: true,
-		Data:    response,
-	})
+	utils.Success(c, http.StatusOK, response)
 }
 
 func (h *LeadHandler) GetAllLeads(c *gin.Context) {
@@ -110,10 +98,7 @@ func (h *LeadHandler) GetAllLeads(c *gin.Context) {
 	leads, err := h.service.GetAllLeads(status)
 	if err != nil {
 
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+		utils.Error(c, http.StatusInternalServerError, err.Error())
 
 		return
 	}
@@ -133,10 +118,7 @@ func (h *LeadHandler) GetAllLeads(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, dto.SuccessResponse{
-		Success: true,
-		Data:    response,
-	})
+	utils.Success(c, http.StatusOK, response)
 }
 
 func (h *LeadHandler) UpdateLead(c *gin.Context) {
@@ -144,20 +126,16 @@ func (h *LeadHandler) UpdateLead(c *gin.Context) {
 
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Success: false,
-			Error:   "invalid UUID format",
-		})
+
+		utils.ValidationError(c, "invalid UUID format")
 		return
 	}
 
 	var req dto.UpdateLeadRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+	
+		utils.ValidationError(c, err.Error())
 		return
 	}
 
@@ -169,10 +147,7 @@ func (h *LeadHandler) UpdateLead(c *gin.Context) {
 		})
 		return
 	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+		utils.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -187,11 +162,8 @@ func (h *LeadHandler) UpdateLead(c *gin.Context) {
 		UpdatedAt: lead.UpdatedAt,
 	}
 
-	c.JSON(http.StatusOK, dto.SuccessResponse{
-		Success: true,
-		Data:    response,
-	})
-	
+	utils.Success(c, http.StatusOK, response)
+
 }
 
 func (h *LeadHandler) UpdateLeadStatus(c *gin.Context) {
@@ -199,20 +171,16 @@ func (h *LeadHandler) UpdateLeadStatus(c *gin.Context) {
 
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Success: false,
-			Error:   "invalid UUID format",
-		})
+	
+		utils.ValidationError(c, "invalid UUID format")
 		return
 	}
 
 	var req dto.UpdateLeadStatusRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+
+		utils.ValidationError(c, err.Error())
 		return
 	}
 
@@ -224,10 +192,7 @@ func (h *LeadHandler) UpdateLeadStatus(c *gin.Context) {
 		})
 		return
 	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+		utils.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -241,11 +206,7 @@ func (h *LeadHandler) UpdateLeadStatus(c *gin.Context) {
 		CreatedAt: lead.CreatedAt,
 		UpdatedAt: lead.UpdatedAt,
 	}
-
-	c.JSON(http.StatusOK, dto.SuccessResponse{
-		Success: true,
-		Data:    response,
-	})
+	utils.Success(c, http.StatusOK, response)
 }
 
 func (h *LeadHandler) DeleteLead(c *gin.Context) {
@@ -253,10 +214,7 @@ func (h *LeadHandler) DeleteLead(c *gin.Context) {
 
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Success: false,
-			Error:   "invalid UUID format",
-		})
+		utils.ValidationError(c, "invalid UUID format")
 		return
 	}
 
@@ -268,15 +226,8 @@ func (h *LeadHandler) DeleteLead(c *gin.Context) {
 		})
 		return
 	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+		utils.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	c.JSON(http.StatusOK, dto.SuccessResponse{
-		Success: true,
-		Data:    "lead deleted successfully",
-	})
-}	
+	utils.Success(c, http.StatusOK, "lead deleted successfully")
+}
