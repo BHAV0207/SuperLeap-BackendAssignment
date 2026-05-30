@@ -1,7 +1,7 @@
 package dto
 
 type BulkCreateLeadRequest struct {
-	Leads []CreateLeadRequest `json:"leads" binding:"required,dive"`
+	Leads []CreateLeadRequest `json:"leads" binding:"required,min=1"`
 }
 
 type BulkUpdateLeadItem struct {

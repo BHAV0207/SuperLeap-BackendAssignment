@@ -6,6 +6,8 @@ import (
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/dto"
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/models"
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/repositories"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
@@ -129,14 +131,36 @@ func (s *LeadService) DeleteLead(id uuid.UUID) error {
 }
 
 // bulk requests
-func (s *LeadService) BulkCreateLeads(req dto.BulkCreateLeadRequest) dto.BulkResponse {
+func (s *LeadService) BulkCreateLeads(
+	req dto.BulkCreateLeadRequest,
+) dto.BulkResponse {
 
-	response := dto.BulkResponse{Total: len(req.Leads)}
+	response := dto.BulkResponse{
+		Total: len(req.Leads),
+	}
+
+	validate := binding.Validator.Engine().(*validator.Validate)
 
 	for index, leadReq := range req.Leads {
 
-		lead, err := s.CreateLead(&leadReq)
+		err := validate.Struct(leadReq)
+		if err != nil {
 
+			response.Failed++
+
+			response.Results = append(
+				response.Results,
+				dto.BulkResult{
+					Index:   index,
+					Success: false,
+					Error:   err.Error(),
+				},
+			)
+
+			continue
+		}
+
+		lead, err := s.CreateLead(&leadReq)
 		if err != nil {
 
 			response.Failed++
@@ -178,6 +202,7 @@ func (s *LeadService) BulkCreateLeads(req dto.BulkCreateLeadRequest) dto.BulkRes
 
 	return response
 }
+
 
 func (s *LeadService) BulkUpdateLeads(req dto.BulkUpdateLeadRequest) dto.BulkResponse {
 

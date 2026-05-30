@@ -204,12 +204,6 @@ func (h *LeadHandler) DeleteLead(c *gin.Context) {
 
 // bulk operations
 func (h *LeadHandler) BulkCreateLeads(c *gin.Context) {
-
-	if c.Request.Body == nil {
-		utils.ValidationError(c, "request body cannot be empty")
-		return
-	}
-
 	var req dto.BulkCreateLeadRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
