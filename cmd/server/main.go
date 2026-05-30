@@ -1,28 +1,55 @@
 package main
 
 import (
+	"log"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/config"
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/database"
-	"github.com/gin-gonic/gin"
+	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/handlers"
+	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/models"
+	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/repositories"
+	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/routes"
+	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/services"
 )
 
 func main() {
-	// Create a Gin router with default middleware (logger and recovery)
-	router := gin.Default()
+
+	// Load configuration
 	cfg, err := config.NewAppConfig()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
+	// Connect database
 	db, err := database.ConnectDatabase(cfg)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
-	_ = db
+	// Run migrations
+	err = db.AutoMigrate(&models.Lead{})
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	// Initialize dependencies
+	leadRepository := repositories.NewLeadRepository(db)
+
+	leadService := services.NewLeadService(
+		leadRepository,
+	)
+
+	leadHandler := handlers.NewLeadHandler(
+		leadService,
+	)
+
+	// Create router
+	router := gin.Default()
+
+	// Health check
 	router.GET("/health", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"success": true,
@@ -30,7 +57,15 @@ func main() {
 		})
 	})
 
-	if err := router.Run(":" + cfg.Port.Port); err != nil {
-		panic(err)
+	// Register routes
+	routes.RegisterLeadRoutes(
+		router,
+		leadHandler,
+	)
+
+	// Start server
+	err = router.Run(":" + cfg.Port.Port)
+	if err != nil {
+		log.Fatal(err)
 	}
 }
