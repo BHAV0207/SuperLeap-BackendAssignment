@@ -30,15 +30,12 @@ It also encourages clean architecture and explicit error handling.
 Gin was chosen because it is:
 
 * lightweight
-* fast
-* minimal
 * production-ready
 
 It provides:
 
 * routing
 * middleware support
-* request validation
 * JSON serialization
 
 without unnecessary complexity.
@@ -642,29 +639,3 @@ Possible production solutions:
 For assignment scope, sequential updates are sufficient.
 
 ---
-
-# Future Improvements
-
-Possible future enhancements:
-
-* pagination
-* search by name/email
-* sorting
-* Swagger/OpenAPI documentation
-* authentication/authorization
-* unit/integration testing
-* metrics/monitoring
-* async event processing
-* Dockerized application container
-* CI/CD pipeline
-
----
-
-# Notes
-
-This project was intentionally designed to prioritize:
-
-* correctness
-* clean architecture
-* maintainability
-* simplicity over overengineering
