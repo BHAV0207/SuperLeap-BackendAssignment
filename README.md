@@ -404,11 +404,12 @@ Custom domain errors are implemented for:
 
 # Seed Data
 
-The application automatically seeds sample leads during startup.
+The application provides a manual seeding script to populate the database with sample leads.
 
 The seeding process is:
 
-* idempotent
+* manual (run `bash seed.sh`)
+* idempotent (handled by the API)
 * duplicate-safe
 
 Sample leads include all workflow states:
@@ -461,10 +462,16 @@ docker compose up -d
 
 ---
 
-# Run Application
-
 ```bash
 go run cmd/server/main.go
+```
+
+### (Optional) Seed Database
+
+To populate the database with sample leads while the server is running, use the provided seed script:
+
+```bash
+bash seed.sh
 ```
 
 Server runs on:

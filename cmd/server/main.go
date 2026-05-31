@@ -41,10 +41,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = database.SeedData(db)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// Initialize dependencies
 	leadRepository := repositories.NewLeadRepository(db)

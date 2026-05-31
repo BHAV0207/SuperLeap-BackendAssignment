@@ -8,6 +8,7 @@ import (
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/models"
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/services"
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/utils"
+	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/validators"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -79,6 +80,11 @@ func (h *LeadHandler) GetAllLeads(c *gin.Context) {
 
 	if statusQuery != "" {
 		s := models.LeadStatus(statusQuery)
+
+		if !validators.IsValidStatus(string(s)) {
+			utils.ValidationError(c, "invalid status value")
+			return
+		}
 		status = &s
 	}
 
