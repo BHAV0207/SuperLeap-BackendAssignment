@@ -503,6 +503,13 @@ http://localhost:8080
 
 ---
 
+# Postman Collection
+
+Access the Postman collection to test the APIs:
+[Postman Collection Link](https://www.postman.com/bhav0207/workspace/my-workspace/collection/45988199-764f0d51-9398-4bc0-bab2-d2fb27ebf7ce?action=share&creator=45988199)
+
+---
+
 # Example Requests
 
 ## Create Lead
