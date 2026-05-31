@@ -75,8 +75,10 @@ func (h *LeadHandler) GetLeadByID(c *gin.Context) {
 
 func (h *LeadHandler) GetAllLeads(c *gin.Context) {
 	statusQuery := c.Query("status")
+	emailQuery := c.Query("email")
 
 	var status *models.LeadStatus
+	var email *string
 
 	if statusQuery != "" {
 		s := models.LeadStatus(statusQuery)
@@ -84,11 +86,19 @@ func (h *LeadHandler) GetAllLeads(c *gin.Context) {
 		if !validators.IsValidStatus(string(s)) {
 			utils.ValidationError(c, "invalid status value")
 			return
-		}
+		} 
 		status = &s
 	}
 
-	leads, err := h.service.GetAllLeads(status)
+	if emailQuery != "" {
+		email = &emailQuery
+	}
+
+	leads, err := h.service.GetAllLeads(
+		status,
+		email,
+	)
+
 	if err != nil {
 
 		utils.Error(c, http.StatusInternalServerError, err.Error())

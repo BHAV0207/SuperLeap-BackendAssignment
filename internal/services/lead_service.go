@@ -59,8 +59,8 @@ func (s *LeadService) GetLeadByID(id uuid.UUID) (*models.Lead, error) {
 	return lead, nil
 }
 
-func (s *LeadService) GetAllLeads(status *models.LeadStatus) ([]models.Lead, error) {
-	return s.repo.GetAll(status)
+func (s *LeadService) GetAllLeads(status *models.LeadStatus,email *string,) ([]models.Lead, error) {
+	return s.repo.GetAll(status , email)
 }
 
 func (s *LeadService) UpdateLead(id uuid.UUID, req dto.UpdateLeadRequest) (*models.Lead, error) {
@@ -131,9 +131,7 @@ func (s *LeadService) DeleteLead(id uuid.UUID) error {
 }
 
 // bulk requests
-func (s *LeadService) BulkCreateLeads(
-	req dto.BulkCreateLeadRequest,
-) dto.BulkResponse {
+func (s *LeadService) BulkCreateLeads(req dto.BulkCreateLeadRequest) dto.BulkResponse {
 
 	response := dto.BulkResponse{
 		Total: len(req.Leads),
@@ -202,7 +200,6 @@ func (s *LeadService) BulkCreateLeads(
 
 	return response
 }
-
 
 func (s *LeadService) BulkUpdateLeads(req dto.BulkUpdateLeadRequest) dto.BulkResponse {
 

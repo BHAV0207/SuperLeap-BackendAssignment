@@ -25,11 +25,10 @@ The focus of this project was:
 
 Go was chosen because of:
 
-* simplicity
+* simplicity , as i have wokrd in go lang before.
 * strong concurrency support
-* excellent performance
+* excellent performance at scale 
 * clean standard library
-* suitability for backend APIs and microservices
 
 It also encourages clean architecture and explicit error handling.
 
@@ -58,11 +57,9 @@ without unnecessary complexity.
 ## Database — PostgreSQL
 
 PostgreSQL was chosen because:
-
+* The main reasini chose SQL is beacause are schema was not changing frequently and we had a fix schema for lead 
+* works well with structured business workflows 
 * it is reliable and production-proven
-* supports strong relational consistency
-* works well with structured business workflows
-* integrates cleanly with GORM
 
 The Lead entity and workflow transitions fit naturally into a relational model.
 
@@ -104,7 +101,7 @@ Implemented:
 * Get All Leads
 * Get Lead By ID
 * Update Lead
-* Delete Lead (Soft Delete)
+* Delete Lead
 * Status Transition API
 
 Additional features:
@@ -260,7 +257,7 @@ The following workflow rules are enforced:
 
 ```txt
 NEW → CONTACTED → QUALIFIED → CONVERTED
- ↘ LOST
+ ↘ LOST     |-> LOST   |->LOST    
 ```
 
 Rules:
@@ -558,6 +555,12 @@ curl -X POST http://localhost:8080/leads/bulk \
 
 # Design Decisions
 
+## Why Email dublication Allowed?  
+For historical Relevance 
+
+* it is possible a user might visit feq times so rather than deleting the data we can keep the historical data for our analysis later for user behaviour
+* thus added a filter to search by email with status 
+
 ## Why Layered Architecture?
 
 Layered architecture was chosen to:
@@ -658,5 +661,3 @@ This project was intentionally designed to prioritize:
 * clean architecture
 * maintainability
 * simplicity over overengineering
-
-The goal was to build a realistic backend system while keeping the implementation understandable and production-inspired.

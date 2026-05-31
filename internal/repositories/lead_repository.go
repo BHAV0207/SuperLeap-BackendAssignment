@@ -26,13 +26,17 @@ func (r *LeadRepository) GetByID(id uuid.UUID) (*models.Lead, error) {
 	return &lead, nil
 }
 
-func (r *LeadRepository) GetAll(status *models.LeadStatus) ([]models.Lead, error) {
+func (r *LeadRepository) GetAll(status *models.LeadStatus , email *string) ([]models.Lead, error) {
 	var leads []models.Lead
 
 	query := r.db.Model(&models.Lead{})
 
 	if status != nil {
 		query = query.Where("status = ?", *status)
+	}
+
+	if email != nil {
+		query = query.Where("email = ?", *email)
 	}
 
 	err := query.Find(&leads).Error
