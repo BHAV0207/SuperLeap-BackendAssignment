@@ -8,15 +8,6 @@ This project implements:
 * Level 2 — Bulk Operations with Partial Success Handling
 * Level 3 — Redis Caching with Graceful Fallback
 
-The focus of this project was:
-
-* clean architecture
-* correctness
-* maintainability
-* proper backend engineering practices
-* graceful error handling
-* realistic API design
-
 ---
 
 # Tech Stack
@@ -568,6 +559,14 @@ For historical Relevance
 
 * it is possible a user might visit few times so rather than deleting the data we can keep the historical data for our analysis later for user behaviour
 * thus added a filter to search by email with status 
+
+## Why Full Name Validation?
+
+The assessment specification requires a "Full name of the lead". To satisfy this while maintaining a balance between strictness and flexibility, a "middle ground" approach was taken:
+
+* **Implementation**: The validator ensures the name contains at least two space-separated words (e.g., "Aman Gupta").
+* **Reasoning**: This prevents single-word entries (like just "Aman") which are often placeholders in a CRM, while remaining culturally inclusive of various naming patterns.
+* **Fallback**: It avoids complex regex that might fail on valid names with special characters or varying lengths.
 
 ## Why Layered Architecture?
 

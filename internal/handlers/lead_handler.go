@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/dto"
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/models"
@@ -28,8 +30,7 @@ func (h *LeadHandler) CreateLead(c *gin.Context) {
 	var req dto.CreateLeadRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-
-		utils.ValidationError(c, err.Error())
+		utils.ValidationError(c, utils.ParseValidationError(err))
 		return
 	}
 
@@ -47,24 +48,19 @@ func (h *LeadHandler) CreateLead(c *gin.Context) {
 func (h *LeadHandler) GetLeadByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-
-		utils.ValidationError(c, "invalid UUID format")
+		utils.ValidationError(c, "invalid lead ID: must be a valid UUID (e.g. 123e4567-e89b-12d3-a456-426614174000)")
 		return
 	}
 
 	lead, err := h.service.GetLeadByID(id)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-
-		utils.Error(c, http.StatusNotFound, "lead not found")
-
+		utils.Error(c, http.StatusNotFound, fmt.Sprintf("lead with ID '%s' not found", c.Param("id")))
 		return
 	}
 
 	if err != nil {
-
 		utils.Error(c, http.StatusInternalServerError, err.Error())
-
 		return
 	}
 
@@ -77,6 +73,8 @@ func (h *LeadHandler) GetAllLeads(c *gin.Context) {
 	statusQuery := c.Query("status")
 	emailQuery := c.Query("email")
 
+	validStatuses := []string{"NEW", "CONTACTED", "QUALIFIED", "CONVERTED", "LOST"}
+
 	var status *models.LeadStatus
 	var email *string
 
@@ -84,9 +82,13 @@ func (h *LeadHandler) GetAllLeads(c *gin.Context) {
 		s := models.LeadStatus(statusQuery)
 
 		if !validators.IsValidStatus(string(s)) {
-			utils.ValidationError(c, "invalid status value")
+			utils.ValidationError(c, fmt.Sprintf(
+				"invalid status value '%s': must be one of %s",
+				statusQuery,
+				strings.Join(validStatuses, ", "),
+			))
 			return
-		} 
+		}
 		status = &s
 	}
 
@@ -100,9 +102,7 @@ func (h *LeadHandler) GetAllLeads(c *gin.Context) {
 	)
 
 	if err != nil {
-
 		utils.Error(c, http.StatusInternalServerError, err.Error())
-
 		return
 	}
 
@@ -123,22 +123,20 @@ func (h *LeadHandler) UpdateLead(c *gin.Context) {
 
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-
-		utils.ValidationError(c, "invalid UUID format")
+		utils.ValidationError(c, "invalid lead ID: must be a valid UUID (e.g. 123e4567-e89b-12d3-a456-426614174000)")
 		return
 	}
 
 	var req dto.UpdateLeadRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-
-		utils.ValidationError(c, err.Error())
+		utils.ValidationError(c, utils.ParseValidationError(err))
 		return
 	}
 
 	lead, err := h.service.UpdateLead(id, req)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		utils.Error(c, http.StatusNotFound, "lead not found")
+		utils.Error(c, http.StatusNotFound, fmt.Sprintf("lead with ID '%s' not found", idParam))
 		return
 	} else if err != nil {
 		utils.Error(c, http.StatusInternalServerError, err.Error())
@@ -153,39 +151,34 @@ func (h *LeadHandler) UpdateLead(c *gin.Context) {
 
 func (h *LeadHandler) UpdateLeadStatus(c *gin.Context) {
 
-	id, err := uuid.Parse(c.Param("id"))
+	idParam := c.Param("id")
+	id, err := uuid.Parse(idParam)
 	if err != nil {
-
-		utils.ValidationError(c, "invalid UUID format")
+		utils.ValidationError(c, "invalid lead ID: must be a valid UUID (e.g. 123e4567-e89b-12d3-a456-426614174000)")
 		return
 	}
 
 	var req dto.UpdateLeadStatusRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-
-		utils.ValidationError(c, err.Error())
+		utils.ValidationError(c, utils.ParseValidationError(err))
 		return
 	}
 
 	lead, err := h.service.UpdateLeadStatus(id, req.Status)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-
-		utils.Error(c, http.StatusNotFound, "lead not found")
+		utils.Error(c, http.StatusNotFound, fmt.Sprintf("lead with ID '%s' not found", idParam))
 		return
 	}
 
 	if errors.Is(err, services.ErrInvalidStatusTransition) {
-
 		utils.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err != nil {
-
 		utils.Error(c, http.StatusInternalServerError, err.Error())
-
 		return
 	}
 
@@ -196,21 +189,21 @@ func (h *LeadHandler) UpdateLeadStatus(c *gin.Context) {
 
 func (h *LeadHandler) DeleteLead(c *gin.Context) {
 
-	id, err := uuid.Parse(c.Param("id"))
+	idParam := c.Param("id")
+	id, err := uuid.Parse(idParam)
 	if err != nil {
-		utils.ValidationError(c, "invalid UUID format")
+		utils.ValidationError(c, "invalid lead ID: must be a valid UUID (e.g. 123e4567-e89b-12d3-a456-426614174000)")
 		return
 	}
 
 	err = h.service.DeleteLead(id)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		utils.Error(c, http.StatusNotFound, "lead not found")
+		utils.Error(c, http.StatusNotFound, fmt.Sprintf("lead with ID '%s' not found", idParam))
 		return
 	}
 
 	if err != nil {
-
 		utils.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -223,7 +216,7 @@ func (h *LeadHandler) BulkCreateLeads(c *gin.Context) {
 	var req dto.BulkCreateLeadRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ValidationError(c, err.Error())
+		utils.ValidationError(c, utils.ParseValidationError(err))
 		return
 	}
 
@@ -241,8 +234,7 @@ func (h *LeadHandler) BulkUpdateLeads(c *gin.Context) {
 	var req dto.BulkUpdateLeadRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-
-		utils.ValidationError(c, err.Error())
+		utils.ValidationError(c, utils.ParseValidationError(err))
 		return
 	}
 

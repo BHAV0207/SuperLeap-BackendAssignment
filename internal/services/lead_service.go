@@ -217,7 +217,7 @@ func (s *LeadService) BulkUpdateLeads(req dto.BulkUpdateLeadRequest) dto.BulkRes
 				dto.BulkResult{
 					Index:   index,
 					Success: false,
-					Error:   "invalid UUID",
+					Error:   fmt.Sprintf("invalid UUID for lead at index %d: must be a valid UUID (e.g. 123e4567-e89b-12d3-a456-426614174000)", index),
 				},
 			)
 

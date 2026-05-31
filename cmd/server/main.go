@@ -57,6 +57,7 @@ func main() {
 	// Register custom validators
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("phone", validators.ValidatePhone)
+		v.RegisterValidation("fullname", validators.ValidateFullName)
 	}
 
 	// Create router
