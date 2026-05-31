@@ -25,7 +25,7 @@ The focus of this project was:
 
 Go was chosen because of:
 
-* simplicity , as i have wokrd in go lang before.
+* simplicity, as i have worked in Go before.
 * strong concurrency support
 * excellent performance at scale 
 * clean standard library
@@ -57,7 +57,7 @@ without unnecessary complexity.
 ## Database — PostgreSQL
 
 PostgreSQL was chosen because:
-* The main reasini chose SQL is beacause are schema was not changing frequently and we had a fix schema for lead 
+* The main reason I chose SQL is because our schema was not changing frequently and we had a fixed schema for leads 
 * works well with structured business workflows 
 * it is reliable and production-proven
 
@@ -148,6 +148,93 @@ Features:
 * graceful fallback if Redis unavailable
 * automatic cache repopulation
 * optional caching layer
+
+---
+
+# Seed Data
+
+The application provides a manual seeding script to populate the database with sample leads.
+
+The seeding process is:
+
+* manual (run `bash seed.sh`)
+* idempotent (handled by the API)
+* duplicate-safe
+
+Sample leads include all workflow states:
+
+* NEW
+* CONTACTED
+* QUALIFIED
+* CONVERTED
+* LOST
+
+---
+
+# Setup Instructions
+
+## Prerequisites
+
+Install:
+
+* Go
+* Docker
+* Docker Compose
+
+---
+
+# Environment Variables
+
+Create a `.env` file:
+
+```env
+PORT=8080
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=superleap
+DB_SSLMODE=disable
+
+REDIS_HOST=localhost
+REDIS_PORT=6379
+```
+
+---
+
+# Start PostgreSQL + Redis
+
+```bash
+docker compose up -d
+```
+
+---
+
+```bash
+go run cmd/server/main.go
+```
+
+# Seed Database
+
+To populate the database with sample leads while the server is running, use the provided seed script:
+
+```bash
+bash seed.sh
+```
+
+Server runs on:
+
+```txt
+http://localhost:8080
+```
+
+---
+
+# Postman Collection
+
+Access the Postman collection to test the APIs:
+[Postman Collection Link](https://www.postman.com/bhav0207/workspace/my-workspace/collection/45988199-764f0d51-9398-4bc0-bab2-d2fb27ebf7ce?action=share&creator=45988199)
 
 ---
 
@@ -397,85 +484,6 @@ Custom domain errors are implemented for:
 
 * invalid status transitions
 
----
-
-# Seed Data
-
-The application provides a manual seeding script to populate the database with sample leads.
-
-The seeding process is:
-
-* manual (run `bash seed.sh`)
-* idempotent (handled by the API)
-* duplicate-safe
-
-Sample leads include all workflow states:
-
-* NEW
-* CONTACTED
-* QUALIFIED
-* CONVERTED
-* LOST
-
----
-
-# Setup Instructions
-
-## Prerequisites
-
-Install:
-
-* Go
-* Docker
-* Docker Compose
-
----
-
-# Environment Variables
-
-Create a `.env` file:
-
-```env
-PORT=8080
-
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=superleap
-DB_SSLMODE=disable
-
-REDIS_HOST=localhost
-REDIS_PORT=6379
-```
-
----
-
-# Start PostgreSQL + Redis
-
-```bash
-docker compose up -d
-```
-
----
-
-```bash
-go run cmd/server/main.go
-```
-
-### (Optional) Seed Database
-
-To populate the database with sample leads while the server is running, use the provided seed script:
-
-```bash
-bash seed.sh
-```
-
-Server runs on:
-
-```txt
-http://localhost:8080
-```
 
 ---
 
@@ -500,13 +508,6 @@ http://localhost:8080
 | ------ | ------------- | ----------------- |
 | POST   | `/leads/bulk` | Bulk create leads |
 | PUT    | `/leads/bulk` | Bulk update leads |
-
----
-
-# Postman Collection
-
-Access the Postman collection to test the APIs:
-[Postman Collection Link](https://www.postman.com/bhav0207/workspace/my-workspace/collection/45988199-764f0d51-9398-4bc0-bab2-d2fb27ebf7ce?action=share&creator=45988199)
 
 ---
 
@@ -562,10 +563,10 @@ curl -X POST http://localhost:8080/leads/bulk \
 
 # Design Decisions
 
-## Why Email dublication Allowed?  
+## Why Email Duplication Allowed?  
 For historical Relevance 
 
-* it is possible a user might visit feq times so rather than deleting the data we can keep the historical data for our analysis later for user behaviour
+* it is possible a user might visit few times so rather than deleting the data we can keep the historical data for our analysis later for user behaviour
 * thus added a filter to search by email with status 
 
 ## Why Layered Architecture?
