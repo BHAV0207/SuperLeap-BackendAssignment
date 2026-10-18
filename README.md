@@ -10,6 +10,24 @@ This project implements:
 
 ---
 
+# Deployment and Operations
+
+The app now runs on Kubernetes (local kind cluster) with a CI/CD pipeline,
+monitoring, tracing and basic security controls.
+
+```bash
+make up      # kind cluster + monitoring + build + deploy + smoke test
+make help    # all targets
+```
+
+* [docs/devops.md](docs/devops.md) — architecture, run instructions, access details, CI/CD, rollback, known limitations
+* [docs/decisions.md](docs/decisions.md) — why each choice was made and the alternatives
+* [docs/runbook.md](docs/runbook.md) — what healthy means, alerts, fault and recovery demos
+
+New operational endpoints: `GET /healthz` (liveness), `GET /readyz` (readiness, checks Postgres and Redis), `GET /metrics` (Prometheus), `GET /version` (running build).
+
+---
+
 # Tech Stack
 
 ## Language — Go
@@ -173,7 +191,7 @@ Install:
 
 # Environment Variables
 
-Create a `.env` file:
+For local runs create a `.env` file (optional, real environment variables take priority; on Kubernetes everything comes from the ConfigMap and Secret):
 
 ```env
 PORT=8080
@@ -187,6 +205,11 @@ DB_SSLMODE=disable
 
 REDIS_HOST=localhost
 REDIS_PORT=6379
+
+# optional
+LOG_LEVEL=info
+APP_ENV=local
+OTEL_EXPORTER_OTLP_ENDPOINT=   # e.g. localhost:4318, empty disables tracing
 ```
 
 ---
