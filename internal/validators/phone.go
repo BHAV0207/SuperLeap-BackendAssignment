@@ -11,7 +11,7 @@ func ValidatePhone(fl validator.FieldLevel) bool {
 	if phone == "" {
 		return true
 	}
-	
+
 	// Basic regex for phone numbers
 	// Supports optional +, optional country code, and 10-12 digits
 	re := regexp.MustCompile(`^(\+\d{1,3}[- ]?)?\d{10,12}$`)

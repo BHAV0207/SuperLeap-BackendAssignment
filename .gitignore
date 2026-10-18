@@ -1,6 +1,10 @@
 .env
+.env.*
+!.env.example
 
-go.mod
-go.sum
+# build output
+/server
+/bin/
+coverage.out
 
-server
+.DS_Store

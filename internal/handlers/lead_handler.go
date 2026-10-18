@@ -34,7 +34,7 @@ func (h *LeadHandler) CreateLead(c *gin.Context) {
 		return
 	}
 
-	lead, err := h.service.CreateLead(&req)
+	lead, err := h.service.CreateLead(c.Request.Context(), &req)
 	if err != nil {
 		utils.Error(c, http.StatusInternalServerError, err.Error())
 		return
@@ -52,7 +52,7 @@ func (h *LeadHandler) GetLeadByID(c *gin.Context) {
 		return
 	}
 
-	lead, err := h.service.GetLeadByID(id)
+	lead, err := h.service.GetLeadByID(c.Request.Context(), id)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		utils.Error(c, http.StatusNotFound, fmt.Sprintf("lead with ID '%s' not found", c.Param("id")))
@@ -97,6 +97,7 @@ func (h *LeadHandler) GetAllLeads(c *gin.Context) {
 	}
 
 	leads, err := h.service.GetAllLeads(
+		c.Request.Context(),
 		status,
 		email,
 	)
@@ -134,7 +135,7 @@ func (h *LeadHandler) UpdateLead(c *gin.Context) {
 		return
 	}
 
-	lead, err := h.service.UpdateLead(id, req)
+	lead, err := h.service.UpdateLead(c.Request.Context(), id, req)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		utils.Error(c, http.StatusNotFound, fmt.Sprintf("lead with ID '%s' not found", idParam))
 		return
@@ -165,7 +166,7 @@ func (h *LeadHandler) UpdateLeadStatus(c *gin.Context) {
 		return
 	}
 
-	lead, err := h.service.UpdateLeadStatus(id, req.Status)
+	lead, err := h.service.UpdateLeadStatus(c.Request.Context(), id, req.Status)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		utils.Error(c, http.StatusNotFound, fmt.Sprintf("lead with ID '%s' not found", idParam))
@@ -196,7 +197,7 @@ func (h *LeadHandler) DeleteLead(c *gin.Context) {
 		return
 	}
 
-	err = h.service.DeleteLead(id)
+	err = h.service.DeleteLead(c.Request.Context(), id)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		utils.Error(c, http.StatusNotFound, fmt.Sprintf("lead with ID '%s' not found", idParam))
@@ -225,7 +226,7 @@ func (h *LeadHandler) BulkCreateLeads(c *gin.Context) {
 		return
 	}
 
-	response := h.service.BulkCreateLeads(req)
+	response := h.service.BulkCreateLeads(c.Request.Context(), req)
 	utils.Success(c, http.StatusCreated, response)
 }
 
@@ -243,7 +244,7 @@ func (h *LeadHandler) BulkUpdateLeads(c *gin.Context) {
 		return
 	}
 
-	response := h.service.BulkUpdateLeads(req)
+	response := h.service.BulkUpdateLeads(c.Request.Context(), req)
 
 	utils.Success(c, http.StatusOK, response)
 }

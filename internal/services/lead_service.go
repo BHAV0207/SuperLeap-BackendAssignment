@@ -1,10 +1,12 @@
 package services
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/dto"
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/models"
+	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/observability"
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/repositories"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -24,7 +26,7 @@ func NewLeadService(repo *repositories.LeadRepository, redisClient *redis.Client
 	}
 }
 
-func (s *LeadService) CreateLead(req *dto.CreateLeadRequest) (*models.Lead, error) {
+func (s *LeadService) CreateLead(ctx context.Context, req *dto.CreateLeadRequest) (*models.Lead, error) {
 
 	lead := models.Lead{
 		Name:   req.Name,
@@ -33,39 +35,41 @@ func (s *LeadService) CreateLead(req *dto.CreateLeadRequest) (*models.Lead, erro
 		Source: req.Source,
 	}
 
-	err := s.repo.Create(&lead)
+	err := s.repo.Create(ctx, &lead)
 	if err != nil {
 		return nil, err
 	}
 
+	observability.LeadsCreatedTotal.Inc()
+
 	return &lead, nil
 }
 
-func (s *LeadService) GetLeadByID(id uuid.UUID) (*models.Lead, error) {
+func (s *LeadService) GetLeadByID(ctx context.Context, id uuid.UUID) (*models.Lead, error) {
 
-	cachedLead, err := s.getCachedLead(id.String())
+	cachedLead, err := s.getCachedLead(ctx, id.String())
 
 	if err == nil && cachedLead != nil {
 		return cachedLead, nil
 	}
 
-	lead, err := s.repo.GetByID(id)
+	lead, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	s.setCachedLead(lead)
+	s.setCachedLead(ctx, lead)
 
 	return lead, nil
 }
 
-func (s *LeadService) GetAllLeads(status *models.LeadStatus,email *string,) ([]models.Lead, error) {
-	return s.repo.GetAll(status , email)
+func (s *LeadService) GetAllLeads(ctx context.Context, status *models.LeadStatus, email *string) ([]models.Lead, error) {
+	return s.repo.GetAll(ctx, status, email)
 }
 
-func (s *LeadService) UpdateLead(id uuid.UUID, req dto.UpdateLeadRequest) (*models.Lead, error) {
+func (s *LeadService) UpdateLead(ctx context.Context, id uuid.UUID, req dto.UpdateLeadRequest) (*models.Lead, error) {
 
-	lead, err := s.repo.GetByID(id)
+	lead, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -86,19 +90,19 @@ func (s *LeadService) UpdateLead(id uuid.UUID, req dto.UpdateLeadRequest) (*mode
 		lead.Source = req.Source
 	}
 
-	err = s.repo.Update(lead)
+	err = s.repo.Update(ctx, lead)
 	if err != nil {
 		return nil, err
 	}
 
-	s.deleteCachedLead(id.String())
+	s.deleteCachedLead(ctx, id.String())
 
 	return lead, nil
 }
 
-func (s *LeadService) UpdateLeadStatus(id uuid.UUID, newStatus models.LeadStatus) (*models.Lead, error) {
+func (s *LeadService) UpdateLeadStatus(ctx context.Context, id uuid.UUID, newStatus models.LeadStatus) (*models.Lead, error) {
 
-	lead, err := s.repo.GetByID(id)
+	lead, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -115,23 +119,23 @@ func (s *LeadService) UpdateLeadStatus(id uuid.UUID, newStatus models.LeadStatus
 
 	lead.Status = newStatus
 
-	err = s.repo.Update(lead)
+	err = s.repo.Update(ctx, lead)
 	if err != nil {
 		return nil, err
 	}
 
-	s.deleteCachedLead(id.String())
+	s.deleteCachedLead(ctx, id.String())
 
 	return lead, nil
 }
 
-func (s *LeadService) DeleteLead(id uuid.UUID) error {
-	s.deleteCachedLead(id.String())
-	return s.repo.Delete(id)
+func (s *LeadService) DeleteLead(ctx context.Context, id uuid.UUID) error {
+	s.deleteCachedLead(ctx, id.String())
+	return s.repo.Delete(ctx, id)
 }
 
 // bulk requests
-func (s *LeadService) BulkCreateLeads(req dto.BulkCreateLeadRequest) dto.BulkResponse {
+func (s *LeadService) BulkCreateLeads(ctx context.Context, req dto.BulkCreateLeadRequest) dto.BulkResponse {
 
 	response := dto.BulkResponse{
 		Total: len(req.Leads),
@@ -158,7 +162,7 @@ func (s *LeadService) BulkCreateLeads(req dto.BulkCreateLeadRequest) dto.BulkRes
 			continue
 		}
 
-		lead, err := s.CreateLead(&leadReq)
+		lead, err := s.CreateLead(ctx, &leadReq)
 		if err != nil {
 
 			response.Failed++
@@ -201,7 +205,7 @@ func (s *LeadService) BulkCreateLeads(req dto.BulkCreateLeadRequest) dto.BulkRes
 	return response
 }
 
-func (s *LeadService) BulkUpdateLeads(req dto.BulkUpdateLeadRequest) dto.BulkResponse {
+func (s *LeadService) BulkUpdateLeads(ctx context.Context, req dto.BulkUpdateLeadRequest) dto.BulkResponse {
 
 	response := dto.BulkResponse{Total: len(req.Leads)}
 
@@ -224,7 +228,7 @@ func (s *LeadService) BulkUpdateLeads(req dto.BulkUpdateLeadRequest) dto.BulkRes
 			continue
 		}
 
-		lead, err := s.UpdateLead(id, leadReq.UpdateLeadRequest)
+		lead, err := s.UpdateLead(ctx, id, leadReq.UpdateLeadRequest)
 
 		if err != nil {
 

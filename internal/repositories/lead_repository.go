@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"context"
+
 	"github.com/BHAV0207/SuperLeap-BackendAssignment/internal/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -14,22 +16,22 @@ func NewLeadRepository(db *gorm.DB) *LeadRepository {
 	return &LeadRepository{db: db}
 }
 
-func (r *LeadRepository) Create(lead *models.Lead) error {
-	return r.db.Create(lead).Error
+func (r *LeadRepository) Create(ctx context.Context, lead *models.Lead) error {
+	return r.db.WithContext(ctx).Create(lead).Error
 }
 
-func (r *LeadRepository) GetByID(id uuid.UUID) (*models.Lead, error) {
+func (r *LeadRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Lead, error) {
 	var lead models.Lead
-	if err := r.db.First(&lead, "id = ?", id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&lead, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &lead, nil
 }
 
-func (r *LeadRepository) GetAll(status *models.LeadStatus , email *string) ([]models.Lead, error) {
+func (r *LeadRepository) GetAll(ctx context.Context, status *models.LeadStatus, email *string) ([]models.Lead, error) {
 	var leads []models.Lead
 
-	query := r.db.Model(&models.Lead{})
+	query := r.db.WithContext(ctx).Model(&models.Lead{})
 
 	if status != nil {
 		query = query.Where("status = ?", *status)
@@ -47,12 +49,12 @@ func (r *LeadRepository) GetAll(status *models.LeadStatus , email *string) ([]mo
 	return leads, nil
 }
 
-func (r *LeadRepository) Update(lead *models.Lead) error {
-	return r.db.Save(lead).Error
+func (r *LeadRepository) Update(ctx context.Context, lead *models.Lead) error {
+	return r.db.WithContext(ctx).Save(lead).Error
 }
 
-func (r *LeadRepository) Delete(id uuid.UUID) error {
-	result := r.db.Delete(&models.Lead{}, "id = ?", id)
+func (r *LeadRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	result := r.db.WithContext(ctx).Delete(&models.Lead{}, "id = ?", id)
 
 	if result.Error != nil {
 		return result.Error

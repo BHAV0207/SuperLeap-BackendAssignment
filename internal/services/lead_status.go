@@ -2,7 +2,6 @@ package services
 
 import "github.com/BHAV0207/SuperLeap-BackendAssignment/internal/models"
 
-
 var validTransitions = map[models.LeadStatus][]models.LeadStatus{
 	models.StatusNew: {
 		models.StatusContacted,

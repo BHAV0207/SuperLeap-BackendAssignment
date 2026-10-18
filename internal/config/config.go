@@ -8,9 +8,10 @@ import (
 )
 
 type AppConfig struct {
-	Port     PortConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
+	Port      PortConfig
+	Database  DatabaseConfig
+	Redis     RedisConfig
+	Telemetry TelemetryConfig
 }
 
 type PortConfig struct {
@@ -23,6 +24,7 @@ type DatabaseConfig struct {
 	User     string
 	Password string
 	Name     string
+	SSLMode  string
 }
 
 type RedisConfig struct {
@@ -30,11 +32,19 @@ type RedisConfig struct {
 	Port string
 }
 
+type TelemetryConfig struct {
+	ServiceName string
+	Environment string
+	// empty means tracing is disabled
+	OTLPEndpoint string
+	LogLevel     string
+}
+
 func NewAppConfig() (*AppConfig, error) {
 
-	if err := godotenv.Load(); err != nil {
-		return nil, fmt.Errorf("error loading .env file: %w", err)
-	}
+	// .env is only for local runs. In docker / kubernetes the values come
+	// from real environment variables, so a missing file is not an error.
+	_ = godotenv.Load()
 
 	portConfig, err := newPortConfig()
 	if err != nil {
@@ -45,15 +55,16 @@ func NewAppConfig() (*AppConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error loading database configuration: %w", err)
 	}
-	redisConfig , err := newRedisConfig()
+	redisConfig, err := newRedisConfig()
 	if err != nil {
 		return nil, fmt.Errorf("error loading Redis configuration: %w", err)
 	}
 
 	return &AppConfig{
-		Port:     *portConfig,
-		Database: *dbConfig,
-		Redis:    *redisConfig,
+		Port:      *portConfig,
+		Database:  *dbConfig,
+		Redis:     *redisConfig,
+		Telemetry: newTelemetryConfig(),
 	}, nil
 }
 
@@ -74,6 +85,7 @@ func newDatabaseConfig() (*DatabaseConfig, error) {
 		User:     os.Getenv("DB_USER"),
 		Password: os.Getenv("DB_PASSWORD"),
 		Name:     os.Getenv("DB_NAME"),
+		SSLMode:  getEnv("DB_SSLMODE", "disable"),
 	}
 
 	if dbConfig.Host == "" || dbConfig.Port == "" || dbConfig.User == "" || dbConfig.Password == "" || dbConfig.Name == "" {
@@ -95,6 +107,22 @@ func newRedisConfig() (*RedisConfig, error) {
 	}
 
 	return redisConfig, nil
+}
+
+func newTelemetryConfig() TelemetryConfig {
+	return TelemetryConfig{
+		ServiceName:  getEnv("OTEL_SERVICE_NAME", "lead-crm"),
+		Environment:  getEnv("APP_ENV", "local"),
+		OTLPEndpoint: os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
+		LogLevel:     getEnv("LOG_LEVEL", "info"),
+	}
+}
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }
 
 //generally the helper functions job is to pass the error to the caller and then the caller decides how to handel THE ERROR .
