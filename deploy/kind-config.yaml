@@ -1,0 +1,12 @@
+# single node local cluster. NodePort 30088 is mapped to localhost:8088
+# so the API is reachable from the host without port-forward.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: lead-crm
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30088
+        hostPort: 8088
+        listenAddress: "127.0.0.1"
+        protocol: TCP

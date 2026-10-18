@@ -1,0 +1,69 @@
+# Default values for the local kind setup.
+# Override per environment with -f or --set instead of copying templates.
+
+app:
+  replicas: 2
+  image:
+    repository: ghcr.io/bhav0207/lead-crm
+    # set by the pipeline to the git commit sha, never "latest"
+    tag: ""
+    pullPolicy: IfNotPresent
+  port: 8080
+  env: local
+  logLevel: info
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+service:
+  type: NodePort
+  port: 80
+  # mapped to localhost:8088 by deploy/kind-config.yaml
+  nodePort: 30088
+
+# the db password is NOT stored in the chart or the repo.
+# Create it once with `make secrets` (or kubectl create secret).
+database:
+  existingSecret: lead-crm-db
+  secretKey: password
+  name: leads
+  user: leads_app
+
+postgres:
+  enabled: true
+  image: postgres:16-alpine
+  storage: 1Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+redis:
+  enabled: true
+  image: redis:7-alpine
+  maxMemory: 64mb
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+tracing:
+  # OTLP/HTTP endpoint of jaeger, empty disables tracing
+  otlpEndpoint: jaeger.monitoring.svc:4318
+
+monitoring:
+  # needs the prometheus operator CRDs (installed by `make monitoring`)
+  enabled: true
+
+networkPolicy:
+  enabled: true

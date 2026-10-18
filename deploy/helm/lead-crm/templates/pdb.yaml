@@ -1,0 +1,14 @@
+{{- if gt (int .Values.app.replicas) 1 }}
+# keep at least one api pod during voluntary disruptions (node drain, upgrades)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: lead-crm
+  labels:
+    {{- include "lead-crm.labels" . | nindent 4 }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "lead-crm.appSelector" . | nindent 6 }}
+{{- end }}

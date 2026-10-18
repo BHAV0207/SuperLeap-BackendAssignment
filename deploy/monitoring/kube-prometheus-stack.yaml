@@ -1,0 +1,52 @@
+# values for prometheus-community/kube-prometheus-stack on a local kind cluster
+
+prometheus:
+  prometheusSpec:
+    # pick up ServiceMonitors / rules from any namespace, not only ones with the helm release label
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    retention: 3d
+    resources:
+      requests:
+        cpu: 100m
+        memory: 400Mi
+
+grafana:
+  admin:
+    # created by `make monitoring`, not stored in git
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: ALL
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+
+# control plane components are not reachable for scraping on kind,
+# leaving these on only produces permanently firing alerts
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+defaultRules:
+  rules:
+    etcd: false
+    kubeControllerManager: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeProxy: false
+  disabled:
+    # kind nodes have no ntp, this one fires forever on a laptop
+    NodeClockNotSynchronising: true

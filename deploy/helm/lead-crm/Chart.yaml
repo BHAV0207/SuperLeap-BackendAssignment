@@ -1,0 +1,6 @@
+apiVersion: v2
+name: lead-crm
+description: Lead CRM API with its PostgreSQL and Redis dependencies
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

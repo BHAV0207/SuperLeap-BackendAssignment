@@ -1,0 +1,77 @@
+{{- if .Values.redis.enabled }}
+# Redis is only a read cache here, losing it loses nothing, so a plain
+# Deployment with no persistence is enough (no StatefulSet / PVC).
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  labels:
+    {{- include "lead-crm.labels" . | nindent 4 }}
+    {{- include "lead-crm.redisSelector" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "lead-crm.redisSelector" . | nindent 4 }}
+  ports:
+    - name: redis
+      port: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  labels:
+    {{- include "lead-crm.labels" . | nindent 4 }}
+    {{- include "lead-crm.redisSelector" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "lead-crm.redisSelector" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "lead-crm.labels" . | nindent 8 }}
+        {{- include "lead-crm.redisSelector" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: redis
+          image: {{ .Values.redis.image }}
+          args:
+            - --save
+            - ""
+            - --appendonly
+            - "no"
+            - --maxmemory
+            - {{ .Values.redis.maxMemory | quote }}
+            - --maxmemory-policy
+            - allkeys-lru
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.redis.resources | nindent 12 }}
+          securityContext:
+            {{- include "lead-crm.containerSecurity" . | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}
+{{- end }}

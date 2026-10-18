@@ -1,0 +1,98 @@
+{{- if .Values.monitoring.enabled }}
+# tells prometheus to scrape /metrics on every api pod
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: lead-crm
+  labels:
+    {{- include "lead-crm.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "lead-crm.appSelector" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+---
+# SLOs (see docs/runbook.md):
+#   availability: 99.5% of requests are not 5xx
+#   latency:      95% of requests finish in under 300ms
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: lead-crm
+  labels:
+    {{- include "lead-crm.labels" . | nindent 4 }}
+spec:
+  groups:
+    - name: lead-crm.sli
+      rules:
+        # probe and scrape traffic is excluded, it is not user traffic
+        - record: leadcrm:requests:rate5m
+          expr: sum(rate(http_requests_total{job="lead-crm",route!~"/healthz|/readyz|/health|/metrics"}[5m]))
+        - record: leadcrm:errors:rate5m
+          # "or vector(0)" so the ratio is 0 instead of empty when there were no 5xx at all
+          expr: sum(rate(http_requests_total{job="lead-crm",route!~"/healthz|/readyz|/health|/metrics",status=~"5.."}[5m])) or vector(0)
+        - record: leadcrm:error_ratio:rate5m
+          expr: leadcrm:errors:rate5m / leadcrm:requests:rate5m
+        - record: leadcrm:latency_p95:rate5m
+          expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{job="lead-crm",route!~"/healthz|/readyz|/health|/metrics"}[5m])))
+    - name: lead-crm.alerts
+      rules:
+        # 5% errors burns the 0.5% error budget 10x faster than allowed
+        - alert: LeadCrmHighErrorRate
+          expr: leadcrm:error_ratio:rate5m > 0.05
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "More than 5% of API requests are failing with 5xx"
+            description: "Error ratio is {{`{{ $value | humanizePercentage }}`}} over the last 5m."
+            runbook_url: "https://github.com/BHAV0207/SuperLeap-BackendAssignment/blob/main/docs/runbook.md#leadcrmhigherrorrate"
+        - alert: LeadCrmHighLatency
+          expr: leadcrm:latency_p95:rate5m > 0.3
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "API p95 latency is above the 300ms SLO"
+            description: "p95 latency is {{`{{ $value | humanizeDuration }}`}}."
+            runbook_url: "https://github.com/BHAV0207/SuperLeap-BackendAssignment/blob/main/docs/runbook.md#leadcrmhighlatency"
+        - alert: LeadCrmNoReadyPods
+          expr: max(kube_deployment_status_replicas_available{namespace="lead-crm",deployment="lead-crm"}) == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "No lead-crm API pod is ready, the service is down"
+            runbook_url: "https://github.com/BHAV0207/SuperLeap-BackendAssignment/blob/main/docs/runbook.md#leadcrmnoreadypods"
+        - alert: LeadCrmPostgresDown
+          expr: max(dependency_up{job="lead-crm",dependency="postgres"}) == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "API pods cannot reach PostgreSQL"
+            runbook_url: "https://github.com/BHAV0207/SuperLeap-BackendAssignment/blob/main/docs/runbook.md#leadcrmpostgresdown"
+        - alert: LeadCrmCacheDown
+          expr: max(dependency_up{job="lead-crm",dependency="redis"}) == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Redis is unreachable, API is serving from PostgreSQL only"
+            runbook_url: "https://github.com/BHAV0207/SuperLeap-BackendAssignment/blob/main/docs/runbook.md#leadcrmcachedown"
+---
+# picked up by the grafana sidecar (label grafana_dashboard=1)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lead-crm-dashboard
+  labels:
+    {{- include "lead-crm.labels" . | nindent 4 }}
+    grafana_dashboard: "1"
+data:
+  lead-crm.json: |-
+{{ .Files.Get "dashboards/lead-crm.json" | indent 4 }}
+{{- end }}
