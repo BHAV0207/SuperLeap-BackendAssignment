@@ -2,6 +2,8 @@ module github.com/BHAV0207/SuperLeap-BackendAssignment
 
 go 1.26.0
 
+toolchain go1.26.9
+
 require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-playground/validator/v10 v10.30.5
