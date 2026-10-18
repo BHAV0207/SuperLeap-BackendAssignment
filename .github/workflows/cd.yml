@@ -1,0 +1,82 @@
+name: CD
+
+# Deploys an image that CI already built and scanned. The cluster is a local
+# kind cluster on my machine, which GitHub's hosted runners cannot reach, so
+# this job runs on a self-hosted runner on that machine. It waits for manual
+# approval through the "local-kind" environment before touching the cluster.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to deploy (7 character commit sha that CI has built)"
+        required: true
+
+permissions:
+  contents: read
+  packages: read
+
+# never run two deploys at once, and never cancel one half way
+concurrency:
+  group: deploy-local-kind
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: [self-hosted, lead-crm-kind]
+    environment:
+      name: local-kind
+      url: http://localhost:8088/version
+    env:
+      IMAGE: ghcr.io/bhav0207/lead-crm
+      TAG: ${{ inputs.tag || '' }}
+    steps:
+      - name: Resolve tag
+        if: github.event_name == 'workflow_run'
+        run: echo "TAG=$(echo '${{ github.event.workflow_run.head_sha }}' | cut -c1-7)" >> "$GITHUB_ENV"
+
+      - name: Validate tag
+        run: |
+          [[ "$TAG" =~ ^[0-9a-f]{7}$ ]] || { echo "invalid tag: $TAG"; exit 1; }
+
+      # check out the chart from the same commit as the image
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull CI image and load into kind
+        run: |
+          docker pull "$IMAGE:$TAG"
+          kind load docker-image "$IMAGE:$TAG" --name lead-crm
+
+      - name: Deploy (rolling update, auto rollback if pods do not become ready)
+        run: |
+          kubectl config use-context kind-lead-crm
+          make deploy TAG="$TAG"
+
+      - name: Smoke test
+        run: make smoke TAG="$TAG"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Deployed \`$IMAGE:$TAG\`"
+            echo '```'
+            helm -n lead-crm history lead-crm --max 5
+            echo
+            curl -s http://localhost:8088/version
+            echo
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
